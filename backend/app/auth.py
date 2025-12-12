@@ -16,8 +16,11 @@ oauth_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def verify_password(p, h): return pwd.verify(p, h)
-def hash_password(p): return pwd.hash(p)
+def hash_password(password: str):
+    return pwd.hash(password[:72])  # limite bcrypt
+
+def verify_password(password: str, hashed: str):
+    return pwd.verify(password[:72], hashed)
 
 def create_token(user: User):
     payload = {
