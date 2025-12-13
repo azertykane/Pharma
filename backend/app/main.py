@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+
 from .database import init_db
 from .routers import machines, users, logs, ping
 from .initial_data import create_admin, admin_exists
@@ -23,7 +24,6 @@ app.add_middleware(
 # ---------------------------
 init_db()
 
-# Crée l'admin seulement s'il n'existe pas
 if not admin_exists():
     create_admin()
 
@@ -41,7 +41,6 @@ app.include_router(ping.router, prefix="/api")
 frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
 if frontend_dist.exists():
-    # Montre tout le dossier dist comme statique (index.html utilisé par défaut)
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 else:
     @app.get("/")
@@ -49,7 +48,7 @@ else:
         return {"message": "Frontend not built."}
 
 # ---------------------------
-# Optional: health check
+# Health check
 # ---------------------------
 @app.get("/health")
 async def health_check():

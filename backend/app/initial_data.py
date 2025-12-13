@@ -1,5 +1,5 @@
 from .models import User
-from .database import engine, get_session
+from .database import engine
 from sqlmodel import Session, select
 from passlib.hash import bcrypt
 from datetime import datetime
@@ -18,7 +18,7 @@ def create_admin():
 
             user = User(
                 username="admin",
-                password_hash=hashed_password,  # 🔑 utiliser password_hash
+                password_hash=hashed_password,
                 role="admin",
                 created_at=datetime.utcnow(),
                 is_superuser=True
@@ -29,9 +29,7 @@ def create_admin():
         else:
             print("Admin déjà existant")
 
-
-
 def admin_exists() -> bool:
     """Retourne True si un admin existe déjà dans la base."""
-    with get_session() as session:
-        return session.query(User).filter(User.is_admin == True).first() is not None
+    with Session(engine) as session:
+        return session.exec(select(User).where(User.username == "admin")).first() is not None
