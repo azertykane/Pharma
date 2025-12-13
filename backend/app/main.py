@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pathlib import Path
 
 from .database import init_db
@@ -9,47 +10,47 @@ from .initial_data import create_admin, admin_exists
 
 app = FastAPI(title="Admin Pharma API")
 
-# ---------------------------
-# CORS
-# ---------------------------
+# -------------------- CORS --------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Tu peux restreindre aux domaines autorisés en prod
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ---------------------------
-# Initialisation DB et admin
-# ---------------------------
+# -------------------- INIT DB --------------------
 init_db()
-
 if not admin_exists():
     create_admin()
 
-# ---------------------------
-# Routers API
-# ---------------------------
-app.include_router(machines.router, prefix="/api/machines")
-app.include_router(users.router, prefix="/api/users")
-app.include_router(logs.router, prefix="/api/logs")
-app.include_router(ping.router, prefix="/api")
+# -------------------- API ROUTES (AVANT LE FRONT) --------------------
+app.include_router(machines.router, prefix="/api/machines", tags=["machines"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(logs.router, prefix="/api/logs", tags=["logs"])
+app.include_router(ping.router, prefix="/api", tags=["ping"])
 
-# ---------------------------
-# Frontend
-# ---------------------------
-frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+# -------------------- FRONTEND --------------------
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 
-if frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+if FRONTEND_DIST.exists():
+    # assets JS / CSS
+    app.mount(
+        "/assets",
+        StaticFiles(directory=FRONTEND_DIST / "assets"),
+        name="assets",
+    )
+
+    # React router (catch-all)
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_react(full_path: str):
+        return FileResponse(FRONTEND_DIST / "index.html")
 else:
     @app.get("/")
-    async def index():
-        return {"message": "Frontend not built."}
+    async def no_front():
+        return {"message": "Frontend not built"}
 
-# ---------------------------
-# Health check
-# ---------------------------
+# -------------------- HEALTH --------------------
 @app.get("/health")
-async def health_check():
+async def health():
     return {"status": "ok"}
