@@ -1,50 +1,56 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pathlib import Path
-
 from .database import init_db
 from .routers import machines, users, logs, ping
-from .initial_data import create_admin
+from .initial_data import create_admin, admin_exists
 
 app = FastAPI(title="Admin Pharma API")
 
-# -------------------- CORS --------------------
+# ---------------------------
+# CORS
+# ---------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Tu peux restreindre aux domaines autorisés en prod
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# -------------------- INIT DB --------------------
+# ---------------------------
+# Initialisation DB et admin
+# ---------------------------
 init_db()
-create_admin()
 
-# -------------------- ROUTERS API --------------------
+# Crée l'admin seulement s'il n'existe pas
+if not admin_exists():
+    create_admin()
+
+# ---------------------------
+# Routers API
+# ---------------------------
 app.include_router(machines.router, prefix="/api/machines")
 app.include_router(users.router, prefix="/api/users")
 app.include_router(logs.router, prefix="/api/logs")
 app.include_router(ping.router, prefix="/api")
 
-# -------------------- FRONTEND --------------------
+# ---------------------------
+# Frontend
+# ---------------------------
 frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
 if frontend_dist.exists():
-    # Serve assets (JS/CSS/images)
-    app.mount("/static", StaticFiles(directory=str(frontend_dist / "assets")), name="static")
-
-    # Catch-all pour React Router
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def frontend_catchall(full_path: str):
-        return FileResponse(frontend_dist / "index.html")
+    # Montre tout le dossier dist comme statique (index.html utilisé par défaut)
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 else:
     @app.get("/")
-    def index():
-        return {"message": "Frontend not built. Build frontend into frontend/dist to serve UI."}
+    async def index():
+        return {"message": "Frontend not built."}
 
-# -------------------- MAIN --------------------
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# ---------------------------
+# Optional: health check
+# ---------------------------
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
