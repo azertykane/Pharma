@@ -1,34 +1,20 @@
-import React, { useState } from "react";
-import api from "../api";
+const submit = async (e) => {
+  e.preventDefault();
+  setError(null);
 
-export default function Login({ onLogin }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  try {
+    const form = new URLSearchParams();
+    form.append("username", username);
+    form.append("password", password);
 
-  const submit = async (e) => {
-    e.preventDefault();
+    const res = await api.post("/users/login", form, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
 
-    try {
-      const res = await api.post("/users/login", {
-        username,
-        password,
-      });
-      onLogin(res.data.access_token);
-    } catch {
-      setError("Erreur de connexion");
-    }
-  };
-
-  return (
-    <div className="center">
-      <form className="card" onSubmit={submit}>
-        <h2>Admin Pharma</h2>
-        {error && <div className="error">{error}</div>}
-        <input value={username} onChange={(e) => setUsername(e.target.value)} />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <button>Connexion</button>
-      </form>
-    </div>
-  );
-}
+    onLogin(res.data.access_token);
+  } catch (err) {
+    setError("Identifiants incorrects");
+  }
+};
