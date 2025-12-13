@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pathlib import Path
 
 from .database import init_db
@@ -9,7 +10,7 @@ from .initial_data import create_admin
 
 app = FastAPI(title="Admin Pharma API")
 
-# CORS
+# -------------------- CORS --------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,24 +18,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialisation DB
+# -------------------- INIT DB --------------------
 init_db()
-
-# Création d'un utilisateur admin par défaut
 create_admin()
 
-# Inclusion des routers
+# -------------------- ROUTERS API --------------------
 app.include_router(machines.router, prefix="/api/machines")
 app.include_router(users.router, prefix="/api/users")
 app.include_router(logs.router, prefix="/api/logs")
 app.include_router(ping.router, prefix="/api")
 
-# Serve frontend si buildé
+# -------------------- FRONTEND --------------------
 frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
 if frontend_dist.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+    # Serve JS/CSS/images sous /static
+    app.mount("/static", StaticFiles(directory=str(frontend_dist / "assets")), name="static")
+
+    # Catch-all pour React Router
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def frontend_catchall(full_path: str):
+        return FileResponse(frontend_dist / "index.html")
 else:
     @app.get("/")
     def index():
-        return {"message": "Frontend not built. Build the frontend into frontend/dist to serve static UI."}
+        return {"message": "Frontend not built. Build frontend into frontend/dist to serve UI."}
+
