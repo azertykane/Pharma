@@ -8,12 +8,12 @@ export default function Dashboard({ token, onLogout, user }) {
   useEffect(() => { fetchMachines(); fetchLogs(); }, []);
 
   const fetchMachines = async () => {
-    const res = await axios.get("/api/machines/", { headers: { Authorization: `Bearer ${token}` } });
+    const res = await axios.get("/api/machines", { headers: { Authorization: `Bearer ${token}` } });
     setMachines(res.data);
   };
 
   const fetchLogs = async () => {
-    const res = await axios.get("/api/logs/", { headers: { Authorization: `Bearer ${token}` } });
+    const res = await axios.get("/api/logs", { headers: { Authorization: `Bearer ${token}` } });
     setLogs(res.data);
   };
 
