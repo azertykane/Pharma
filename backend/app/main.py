@@ -23,28 +23,25 @@ init_db()
 if not admin_exists():
     create_admin()
 
-# -------------------- API ROUTES (AVANT LE FRONT) --------------------
-app.include_router(machines.router, prefix="/api/machines", tags=["machines"])
-app.include_router(users.router, prefix="/api/users", tags=["users"])
-app.include_router(logs.router, prefix="/api/logs", tags=["logs"])
-app.include_router(ping.router, prefix="/api", tags=["ping"])
+# -------------------- API (TOUJOURS AVANT LE FRONT) --------------------
+app.include_router(machines.router, prefix="/api/machines")
+app.include_router(users.router, prefix="/api/users")
+app.include_router(logs.router, prefix="/api/logs")
+app.include_router(ping.router, prefix="/api")
 
 # -------------------- FRONTEND --------------------
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 
 if FRONTEND_DIST.exists():
-    # assets JS / CSS
+
+    # Servir TOUT le dist (Vite gère assets tout seul)
     app.mount(
-        "/assets",
-        StaticFiles(directory=FRONTEND_DIST / "assets"),
-        name="assets",
+        "/",
+        StaticFiles(directory=FRONTEND_DIST, html=True),
+        name="frontend",
     )
 
-    # React router (catch-all)
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_react(full_path: str):
-        return FileResponse(FRONTEND_DIST / "index.html")
 else:
     @app.get("/")
     async def no_front():
