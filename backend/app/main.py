@@ -23,7 +23,7 @@ init_db()
 if not admin_exists():
     create_admin()
 
-# -------------------- API (TOUJOURS AVANT LE FRONT) --------------------
+# -------------------- API (AVANT TOUT) --------------------
 app.include_router(machines.router, prefix="/api/machines")
 app.include_router(users.router, prefix="/api/users")
 app.include_router(logs.router, prefix="/api/logs")
@@ -35,12 +35,17 @@ FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 
 if FRONTEND_DIST.exists():
 
-    # Servir TOUT le dist (Vite gère assets tout seul)
+    # 1️⃣ Servir les assets Vite
     app.mount(
-        "/",
-        StaticFiles(directory=FRONTEND_DIST, html=True),
-        name="frontend",
+        "/assets",
+        StaticFiles(directory=FRONTEND_DIST / "assets"),
+        name="assets",
     )
+
+    # 2️⃣ Catch-all React (APRES l'API)
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa(full_path: str):
+        return FileResponse(FRONTEND_DIST / "index.html")
 
 else:
     @app.get("/")
