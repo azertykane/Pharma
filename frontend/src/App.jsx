@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "./api";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -6,24 +6,37 @@ import Dashboard from "./pages/Dashboard";
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [user, setUser] = useState(null);
-  const loaded = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const fetched = useRef(false);
 
   useEffect(() => {
-    if (!token || loaded.current) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
-    loaded.current = true;
+    if (fetched.current) return;
+    fetched.current = true;
 
     api
       .get("/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => setUser(res.data))
+      .then((res) => {
+        setUser(res.data);
+        setLoading(false);
+      })
       .catch(() => {
+        localStorage.removeItem("token");
         setToken(null);
         setUser(null);
-        localStorage.removeItem("token");
+        setLoading(false);
       });
   }, [token]);
+
+  if (loading) {
+    return <div style={{ padding: 40 }}>Chargement…</div>;
+  }
 
   if (!token) {
     return (
@@ -31,7 +44,8 @@ export default function App() {
         onLogin={(t) => {
           localStorage.setItem("token", t);
           setToken(t);
-          loaded.current = false;
+          fetched.current = false;
+          setLoading(true);
         }}
       />
     );
@@ -39,12 +53,12 @@ export default function App() {
 
   return (
     <Dashboard
-      token={token}
       user={user}
+      token={token}
       onLogout={() => {
+        localStorage.removeItem("token");
         setToken(null);
         setUser(null);
-        localStorage.removeItem("token");
       }}
     />
   );
