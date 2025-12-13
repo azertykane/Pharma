@@ -32,7 +32,7 @@ app.include_router(ping.router, prefix="/api")
 frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
 if frontend_dist.exists():
-    # Serve JS/CSS/images sous /static
+    # Serve assets (JS/CSS/images)
     app.mount("/static", StaticFiles(directory=str(frontend_dist / "assets")), name="static")
 
     # Catch-all pour React Router
@@ -44,3 +44,7 @@ else:
     def index():
         return {"message": "Frontend not built. Build frontend into frontend/dist to serve UI."}
 
+# -------------------- MAIN --------------------
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
