@@ -7,10 +7,9 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Rafraîchissement automatique toutes les 10s
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 10000); // 10s
+    const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -20,13 +19,17 @@ export default function Dashboard() {
         api.get("/machines"),
         api.get("/logs"),
       ]);
-      setMachines(mRes.data);
-      setLogs(lRes.data);
+
+      console.log("Machines API:", mRes.data);
+      console.log("Logs API:", lRes.data);
+
+      setMachines(Array.isArray(mRes.data) ? mRes.data : []);
+      setLogs(Array.isArray(lRes.data) ? lRes.data : []);
       setLoading(false);
       setError(null);
     } catch (err) {
       console.error("API ERROR", err);
-      setError("Impossible de charger les données.");
+      setError(err.response?.data || err.message || "Impossible de charger les données.");
       setLoading(false);
     }
   };
@@ -35,8 +38,9 @@ export default function Dashboard() {
     try {
       await api.post(`/machines/${id}/block`);
       loadData();
-    } catch {
-      setError("Erreur blocage machine");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data || "Erreur blocage machine");
     }
   };
 
@@ -44,13 +48,14 @@ export default function Dashboard() {
     try {
       await api.post(`/machines/${id}/unblock`);
       loadData();
-    } catch {
-      setError("Erreur déblocage machine");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data || "Erreur déblocage machine");
     }
   };
 
   if (loading) return <div style={{ padding: 40 }}>Chargement des données…</div>;
-  if (error) return <div style={{ padding: 40 }}>{error}</div>;
+  if (error) return <div style={{ padding: 40, color: "red" }}>{JSON.stringify(error)}</div>;
 
   return (
     <div className="layout">
