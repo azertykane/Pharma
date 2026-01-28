@@ -5,11 +5,33 @@ class Config:
     # Clé secrète
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Base de données (PostgreSQL sur Render, SQLite en local)
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///amicale.db')
-    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+    # Base de données - FORCER SQLite en local
+    # Vérifier si on est en développement local
+    IS_LOCAL_DEV = not os.environ.get('RENDER') and os.environ.get('FLASK_ENV') != 'production'
+    
+    if IS_LOCAL_DEV:
+        # En développement local, utiliser SQLite
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///amicale.db'
+        print("CONFIG: Utilisation de SQLite en développement local")
+    else:
+        # En production (Render), utiliser PostgreSQL
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url:
+            # Convertir postgres:// en postgresql:// pour SQLAlchemy
+            if database_url.startswith('postgres://'):
+                database_url = database_url.replace('postgres://', 'postgresql://', 1)
+            SQLALCHEMY_DATABASE_URI = database_url
+            print("CONFIG: Utilisation de PostgreSQL en production")
+        else:
+            # Fallback à SQLite si DATABASE_URL n'existe pas
+            SQLALCHEMY_DATABASE_URI = 'sqlite:///amicale.db'
+            print("CONFIG: DATABASE_URL non trouvé, utilisation de SQLite")
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_recycle': 300,
+        'pool_pre_ping': True,
+    }
     
     # Upload configuration
     UPLOAD_FOLDER = 'static/uploads'
@@ -32,7 +54,7 @@ class Config:
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
     
     # Production settings
-    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+    DEBUG = os.environ.get('FLASK_ENV') != 'production'
     
 class ProductionConfig(Config):
     DEBUG = False
